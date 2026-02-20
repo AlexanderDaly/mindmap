@@ -4,9 +4,21 @@ import { exportToJSON } from '@/utils/export';
 
 export function useKeyboardShortcuts() {
   const store = useMindMapStore();
+  const { undo, redo } = useMindMapStore.temporal.getState();
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      // Undo/redo should work even from inputs
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;

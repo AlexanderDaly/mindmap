@@ -5,6 +5,7 @@ export type MindMapNodeType = 'root' | 'topic' | 'subtopic';
 export type MindMapNodeData = {
   label: string;
   type: MindMapNodeType;
+  collapsed?: boolean;
 };
 
 export type MindMapNode = Node<MindMapNodeData, string>;

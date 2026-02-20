@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { temporal } from 'zundo';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -43,7 +44,66 @@ type MindMapState = {
   newDoc: (name?: string) => void;
   setDocName: (name: string) => void;
   importData: (name: string, nodes: MindMapNode[], edges: MindMapEdge[]) => void;
+
+  toggleCollapse: (nodeId: string) => void;
+  getVisibleNodes: () => MindMapNode[];
+  getVisibleEdges: () => MindMapEdge[];
+
+  dropTargetId: string | null;
+  setDropTarget: (nodeId: string | null) => void;
+  reparentNode: (nodeId: string, newParentId: string) => void;
 };
+
+/** Collect all node IDs that are hidden because an ancestor is collapsed. */
+function getHiddenNodeIds(nodes: MindMapNode[], edges: MindMapEdge[]): Set<string> {
+  const collapsedIds = new Set(nodes.filter((n) => n.data.collapsed).map((n) => n.id));
+  const hidden = new Set<string>();
+  // Build adjacency: parent -> children
+  const children = new Map<string, string[]>();
+  for (const edge of edges) {
+    const list = children.get(edge.source) ?? [];
+    list.push(edge.target);
+    children.set(edge.source, list);
+  }
+  // BFS from each collapsed node to hide all descendants
+  const queue: string[] = [];
+  for (const id of collapsedIds) {
+    for (const child of children.get(id) ?? []) {
+      queue.push(child);
+    }
+  }
+  while (queue.length > 0) {
+    const id = queue.pop()!;
+    if (hidden.has(id)) continue;
+    hidden.add(id);
+    for (const child of children.get(id) ?? []) {
+      queue.push(child);
+    }
+  }
+  return hidden;
+}
+
+/** Check if `descendantId` is a descendant of `ancestorId` via edges. */
+function isDescendant(ancestorId: string, descendantId: string, edges: MindMapEdge[]): boolean {
+  const children = new Map<string, string[]>();
+  for (const edge of edges) {
+    const list = children.get(edge.source) ?? [];
+    list.push(edge.target);
+    children.set(edge.source, list);
+  }
+  const visited = new Set<string>();
+  const queue = [ancestorId];
+  while (queue.length > 0) {
+    const id = queue.pop()!;
+    if (id === descendantId) return true;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    for (const child of children.get(id) ?? []) {
+      queue.push(child);
+    }
+  }
+  return false;
+}
 
 function createDefaultDoc() {
   const id = nanoid();
@@ -61,7 +121,9 @@ function initState() {
   return { docId: newDoc.id, docName: newDoc.name, nodes: newDoc.nodes, edges: newDoc.edges };
 }
 
-export const useMindMapStore = create<MindMapState>((set, get) => {
+export const useMindMapStore = create<MindMapState>()(
+  temporal(
+    (set, get) => {
   const initial = initState();
 
   return {
@@ -194,8 +256,19 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
 
     autoLayout: (direction) => {
       const dir = direction ?? get().layoutDirection;
-      const { nodes, edges } = getLayoutedElements(get().nodes, get().edges, dir);
-      set({ nodes, edges, layoutDirection: dir });
+      const allNodes = get().nodes;
+      const allEdges = get().edges;
+      const hidden = getHiddenNodeIds(allNodes, allEdges);
+      const visibleNodes = allNodes.filter((n) => !hidden.has(n.id));
+      const visibleEdges = allEdges.filter((e) => !hidden.has(e.source) && !hidden.has(e.target));
+      const layouted = getLayoutedElements(visibleNodes, visibleEdges, dir);
+      // Merge layouted positions back, keep hidden nodes as-is
+      const posMap = new Map(layouted.nodes.map((n) => [n.id, n.position]));
+      const mergedNodes = allNodes.map((n) => {
+        const pos = posMap.get(n.id);
+        return pos ? { ...n, position: pos } : n;
+      });
+      set({ nodes: mergedNodes, edges: allEdges, layoutDirection: dir });
     },
 
     setLayoutDirection: (direction) => set({ layoutDirection: direction }),
@@ -229,5 +302,82 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
       set({ docId: id, docName: name, nodes, edges });
       setActiveDocId(id);
     },
+
+    toggleCollapse: (nodeId) => {
+      set({
+        nodes: get().nodes.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, collapsed: !n.data.collapsed } } : n,
+        ),
+      });
+    },
+
+    getVisibleNodes: () => {
+      const { nodes, edges } = get();
+      const hidden = getHiddenNodeIds(nodes, edges);
+      return nodes.filter((n) => !hidden.has(n.id));
+    },
+
+    getVisibleEdges: () => {
+      const { nodes, edges } = get();
+      const hidden = getHiddenNodeIds(nodes, edges);
+      return edges.filter((e) => !hidden.has(e.source) && !hidden.has(e.target));
+    },
+
+    dropTargetId: null,
+    setDropTarget: (nodeId) => set({ dropTargetId: nodeId }),
+
+    reparentNode: (nodeId, newParentId) => {
+      const { nodes, edges } = get();
+      // Guard: can't reparent root, can't parent to self
+      if (nodeId === 'root' || nodeId === newParentId) return;
+      // Guard: can't make a node a child of its own descendant (cycle)
+      if (isDescendant(nodeId, newParentId, edges)) return;
+      // Guard: already parented to this node
+      const existingEdge = edges.find((e) => e.target === nodeId);
+      if (existingEdge?.source === newParentId) return;
+
+      // Determine new node type based on new parent
+      const newParent = nodes.find((n) => n.id === newParentId);
+      if (!newParent) return;
+      const newType: MindMapNodeType = newParent.data.type === 'root' ? 'topic' : 'subtopic';
+
+      // Remove old incoming edge, add new one
+      const newEdges = edges.filter((e) => e.target !== nodeId);
+      newEdges.push({
+        id: `e-${newParentId}-${nodeId}`,
+        source: newParentId,
+        target: nodeId,
+        type: 'animatedEdge',
+      });
+
+      // Update the node's type to match its new depth
+      const newNodes = nodes.map((n) =>
+        n.id === nodeId ? { ...n, type: newType, data: { ...n.data, type: newType } } : n,
+      );
+
+      set({ nodes: newNodes, edges: newEdges });
+    },
   };
-});
+    },
+    {
+      limit: 100,
+      // Only track nodes and edges — not doc metadata or layout direction
+      partialize: (state) => ({
+        nodes: state.nodes,
+        edges: state.edges,
+      }),
+      // Return true when states are "equal" (i.e. skip saving to history).
+      // Skip position-only / select-only changes so dragging doesn't flood history.
+      equality: (pastState, currentState) => {
+        if (pastState.edges !== currentState.edges) return false;
+        if (pastState.nodes === currentState.nodes) return true;
+        if (pastState.nodes.length !== currentState.nodes.length) return false;
+        // Same nodes by count — check if only positions/selections changed (data unchanged)
+        return pastState.nodes.every((pn, i) => {
+          const cn = currentState.nodes[i];
+          return pn.id === cn.id && pn.data === cn.data;
+        });
+      },
+    },
+  ),
+);

@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { useStore } from 'zustand';
 import { useReactFlow } from '@xyflow/react';
 import {
   Plus,
@@ -10,6 +11,8 @@ import {
   FileText,
   ArrowDownUp,
   ArrowLeftRight,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { useMindMapStore } from '@/store/mindMapStore';
 import { useAutoLayout } from '@/hooks/useAutoLayout';
@@ -18,17 +21,20 @@ import { exportToJSON, importFromJSON } from '@/utils/export';
 function ToolbarButton({
   onClick,
   title,
+  disabled,
   children,
 }: {
   onClick: () => void;
   title: string;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      className="p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-150 cursor-pointer"
+      disabled={disabled}
+      className="p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-white/70"
     >
       {children}
     </button>
@@ -51,6 +57,10 @@ export function Toolbar() {
   const newDoc = useMindMapStore((s) => s.newDoc);
   const { layout, toggleDirection, layoutDirection } = useAutoLayout();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { undo, redo } = useMindMapStore.temporal.getState();
+  const canUndo = useStore(useMindMapStore.temporal, (s) => s.pastStates.length > 0);
+  const canRedo = useStore(useMindMapStore.temporal, (s) => s.futureStates.length > 0);
 
   const handleAdd = useCallback(() => {
     addNode({ x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 });
@@ -89,6 +99,16 @@ export function Toolbar() {
         className="bg-transparent border-none outline-none text-white/80 text-sm font-medium w-40 mr-2 focus:text-white"
         placeholder="Untitled"
       />
+
+      <Divider />
+
+      <ToolbarButton onClick={() => undo()} title="Undo (Ctrl+Z)" disabled={!canUndo}>
+        <Undo2 size={18} />
+      </ToolbarButton>
+
+      <ToolbarButton onClick={() => redo()} title="Redo (Ctrl+Shift+Z)" disabled={!canRedo}>
+        <Redo2 size={18} />
+      </ToolbarButton>
 
       <Divider />
 

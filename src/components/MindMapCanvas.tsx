@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -16,43 +16,85 @@ import { Toolbar } from './Toolbar';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePersistence } from '@/hooks/usePersistence';
 
+const DROP_PROXIMITY = 60; // pixels in flow coordinates
+
 export function MindMapCanvas() {
-  const nodes = useMindMapStore((s) => s.nodes);
-  const edges = useMindMapStore((s) => s.edges);
+  const getVisibleNodes = useMindMapStore((s) => s.getVisibleNodes);
+  const getVisibleEdges = useMindMapStore((s) => s.getVisibleEdges);
   const onNodesChange = useMindMapStore((s) => s.onNodesChange);
   const onEdgesChange = useMindMapStore((s) => s.onEdgesChange);
   const onConnect = useMindMapStore((s) => s.onConnect);
   const addNode = useMindMapStore((s) => s.addNode);
+  const setDropTarget = useMindMapStore((s) => s.setDropTarget);
+  const reparentNode = useMindMapStore((s) => s.reparentNode);
+
+  const visibleNodes = getVisibleNodes();
+  const visibleEdges = getVisibleEdges();
+
+  const draggedNodeId = useRef<string | null>(null);
 
   useKeyboardShortcuts();
   usePersistence();
 
   const handlePaneDoubleClick = useCallback(
     (event: React.MouseEvent) => {
-      // Get the canvas position from screen coordinates
-      // We need the ReactFlow instance for this, but we can calculate from the event
       const bounds = (event.target as HTMLElement).closest('.react-flow')?.getBoundingClientRect();
       if (!bounds) return;
-
-      // Use a simpler approach - add at a viewport-relative position
       addNode({ x: event.clientX - bounds.left - 100, y: event.clientY - bounds.top - 30 });
     },
     [addNode],
   );
 
-  const handleNodeDragStop: OnNodeDrag = useCallback(() => {
-    // auto-save triggers from state change
+  const findDropTarget = useCallback(
+    (dragNodeId: string, dragX: number, dragY: number) => {
+      const nodes = useMindMapStore.getState().getVisibleNodes();
+      for (const node of nodes) {
+        if (node.id === dragNodeId) continue;
+        const dx = node.position.x - dragX;
+        const dy = node.position.y - dragY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < DROP_PROXIMITY) return node.id;
+      }
+      return null;
+    },
+    [],
+  );
+
+  const handleNodeDragStart: OnNodeDrag = useCallback((_event, node) => {
+    draggedNodeId.current = node.id;
   }, []);
+
+  const handleNodeDrag: OnNodeDrag = useCallback(
+    (_event, node) => {
+      const targetId = findDropTarget(node.id, node.position.x, node.position.y);
+      setDropTarget(targetId);
+    },
+    [findDropTarget, setDropTarget],
+  );
+
+  const handleNodeDragStop: OnNodeDrag = useCallback(
+    (_event, _node) => {
+      const targetId = useMindMapStore.getState().dropTargetId;
+      if (targetId && draggedNodeId.current) {
+        reparentNode(draggedNodeId.current, targetId);
+      }
+      setDropTarget(null);
+      draggedNodeId.current = null;
+    },
+    [reparentNode, setDropTarget],
+  );
 
   return (
     <div className="w-screen h-screen" style={{ background: '#0a0a14' }}>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={visibleNodes}
+        edges={visibleEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onDoubleClick={handlePaneDoubleClick}
+        onNodeDragStart={handleNodeDragStart}
+        onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}

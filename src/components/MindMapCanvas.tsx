@@ -5,6 +5,7 @@ import {
   Controls,
   MiniMap,
   BackgroundVariant,
+  useReactFlow,
   type OnNodeDrag,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -16,9 +17,10 @@ import { Toolbar } from './Toolbar';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePersistence } from '@/hooks/usePersistence';
 
-const DROP_PROXIMITY = 60; // pixels in flow coordinates
+const DROP_PROXIMITY = 60;
 
 export function MindMapCanvas() {
+  const { screenToFlowPosition } = useReactFlow();
   const getVisibleNodes = useMindMapStore((s) => s.getVisibleNodes);
   const getVisibleEdges = useMindMapStore((s) => s.getVisibleEdges);
   const onNodesChange = useMindMapStore((s) => s.onNodesChange);
@@ -38,11 +40,10 @@ export function MindMapCanvas() {
 
   const handlePaneDoubleClick = useCallback(
     (event: React.MouseEvent) => {
-      const bounds = (event.target as HTMLElement).closest('.react-flow')?.getBoundingClientRect();
-      if (!bounds) return;
-      addNode({ x: event.clientX - bounds.left - 100, y: event.clientY - bounds.top - 30 });
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      addNode(position);
     },
-    [addNode],
+    [addNode, screenToFlowPosition],
   );
 
   const findDropTarget = useCallback(
@@ -85,7 +86,7 @@ export function MindMapCanvas() {
   );
 
   return (
-    <div className="w-screen h-screen" style={{ background: '#0a0a14' }}>
+    <div className="w-screen h-screen" style={{ background: '#0C2B1E' }}>
       <ReactFlow
         nodes={visibleNodes}
         edges={visibleEdges}
@@ -109,25 +110,25 @@ export function MindMapCanvas() {
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={24}
-          size={1.2}
-          color="rgba(255, 255, 255, 0.06)"
+          gap={28}
+          size={1}
+          color="rgba(29, 196, 126, 0.07)"
         />
         <Controls
           showInteractive={false}
-          className="!bg-[rgba(15,15,25,0.7)] !border-white/10 !rounded-xl [&>button]:!bg-transparent [&>button]:!border-white/10 [&>button]:!text-white/60 [&>button:hover]:!bg-white/10"
+          className="!bg-[rgba(17,17,17,0.8)] !border-white/6 !rounded-xl [&>button]:!bg-transparent [&>button]:!border-white/6 [&>button]:!text-white/40 [&>button:hover]:!bg-white/5"
         />
         <MiniMap
           nodeColor={(n) => {
             switch (n.type) {
-              case 'root': return '#a855f7';
-              case 'topic': return '#3b82f6';
-              case 'subtopic': return '#22d3ee';
+              case 'root': return '#1DC47E';
+              case 'topic': return '#F0EBE0';
+              case 'subtopic': return 'rgba(255, 255, 255, 0.5)';
               default: return '#6b7280';
             }
           }}
-          maskColor="rgba(0, 0, 0, 0.7)"
-          className="!bg-[rgba(15,15,25,0.8)] !border-white/10 !rounded-xl"
+          maskColor="rgba(12, 43, 30, 0.8)"
+          className="!bg-[rgba(17,17,17,0.75)] !border-white/6 !rounded-xl"
         />
         <Toolbar />
       </ReactFlow>

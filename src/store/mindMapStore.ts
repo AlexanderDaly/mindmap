@@ -166,10 +166,13 @@ export const useMindMapStore = create<MindMapState>()(
       const childLabel = childType === 'topic' ? 'New Topic' : 'Subtopic';
 
       const childId = nanoid(8);
+      const isLR = get().layoutDirection === 'LR';
       const newNode: MindMapNode = {
         id: childId,
         type: childType,
-        position: { x: parent.position.x, y: parent.position.y + 120 },
+        position: isLR
+          ? { x: parent.position.x + 250, y: parent.position.y }
+          : { x: parent.position.x, y: parent.position.y + 120 },
         data: { label: childLabel, type: childType },
       };
 
@@ -196,10 +199,13 @@ export const useMindMapStore = create<MindMapState>()(
 
       const siblingId = nanoid(8);
       const siblingType = currentNode.data.type;
+      const isLR = get().layoutDirection === 'LR';
       const newNode: MindMapNode = {
         id: siblingId,
         type: siblingType,
-        position: { x: currentNode.position.x + 220, y: currentNode.position.y },
+        position: isLR
+          ? { x: currentNode.position.x, y: currentNode.position.y + 100 }
+          : { x: currentNode.position.x + 220, y: currentNode.position.y },
         data: { label: siblingType === 'topic' ? 'New Topic' : 'Subtopic', type: siblingType },
       };
 
@@ -289,6 +295,10 @@ export const useMindMapStore = create<MindMapState>()(
     },
 
     newDoc: (name) => {
+      // Save current document before creating a new one
+      const { docId, docName, nodes, edges } = get();
+      saveDocument({ id: docId, name: docName, nodes, edges, updatedAt: Date.now() });
+
       const doc = createDefaultDoc();
       if (name) doc.name = name;
       set({ docId: doc.id, docName: doc.name, nodes: doc.nodes, edges: doc.edges });

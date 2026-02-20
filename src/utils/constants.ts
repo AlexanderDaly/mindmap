@@ -1,20 +1,26 @@
 import type { MindMapNodeType } from '@/types';
 
-export const NODE_COLORS: Record<MindMapNodeType, { glow: string; border: string; text: string }> = {
+export const NODE_COLORS: Record<MindMapNodeType, { glow: string; border: string; text: string; handle: string; handleBorder: string }> = {
   root: {
-    glow: 'rgba(168, 85, 247, 0.4)',
-    border: 'rgba(168, 85, 247, 0.6)',
-    text: '#e9d5ff',
+    glow: 'rgba(29, 196, 126, 0.35)',
+    border: 'rgba(29, 196, 126, 0.6)',
+    text: '#FFFFFF',
+    handle: '#1DC47E',
+    handleBorder: '#0C2B1E',
   },
   topic: {
-    glow: 'rgba(59, 130, 246, 0.4)',
-    border: 'rgba(59, 130, 246, 0.6)',
-    text: '#dbeafe',
+    glow: 'rgba(240, 235, 224, 0.18)',
+    border: 'rgba(240, 235, 224, 0.4)',
+    text: '#F0EBE0',
+    handle: '#F0EBE0',
+    handleBorder: '#0C2B1E',
   },
   subtopic: {
-    glow: 'rgba(34, 211, 238, 0.35)',
-    border: 'rgba(34, 211, 238, 0.5)',
-    text: '#cffafe',
+    glow: 'rgba(255, 255, 255, 0.1)',
+    border: 'rgba(255, 255, 255, 0.25)',
+    text: 'rgba(255, 255, 255, 0.85)',
+    handle: 'rgba(255, 255, 255, 0.6)',
+    handleBorder: '#0C2B1E',
   },
 };
 

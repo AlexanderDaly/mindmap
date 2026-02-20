@@ -25,9 +25,9 @@ export function AnimatedEdge({
     <>
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#a855f7" />
-          <stop offset="50%" stopColor="#3b82f6" />
-          <stop offset="100%" stopColor="#22d3ee" />
+          <stop offset="0%" stopColor="#1DC47E" />
+          <stop offset="60%" stopColor="#F0EBE0" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="rgba(255, 255, 255, 0.3)" />
         </linearGradient>
       </defs>
       <BaseEdge
@@ -35,12 +35,12 @@ export function AnimatedEdge({
         path={edgePath}
         style={{
           stroke: `url(#${gradientId})`,
-          strokeWidth: selected ? 2.5 : 1.8,
-          filter: selected ? 'drop-shadow(0 0 4px rgba(139, 92, 246, 0.5))' : undefined,
+          strokeWidth: selected ? 2.5 : 1.5,
+          filter: selected ? 'drop-shadow(0 0 4px rgba(29, 196, 126, 0.4))' : undefined,
         }}
       />
       {/* Traveling dot animation */}
-      <circle r="3" fill="#a78bfa" filter="drop-shadow(0 0 3px rgba(167, 139, 250, 0.8))">
+      <circle r="2.5" fill="#1DC47E" filter="drop-shadow(0 0 3px rgba(29, 196, 126, 0.6))">
         <animateMotion dur="3s" repeatCount="indefinite" path={edgePath} />
       </circle>
     </>

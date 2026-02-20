@@ -34,7 +34,7 @@ function ToolbarButton({
       onClick={onClick}
       title={title}
       disabled={disabled}
-      className="p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-white/70"
+      className="p-2 rounded-lg text-white/50 hover:text-[#1DC47E] hover:bg-white/5 transition-all duration-150 cursor-pointer disabled:opacity-25 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-white/50"
     >
       {children}
     </button>
@@ -42,11 +42,11 @@ function ToolbarButton({
 }
 
 function Divider() {
-  return <div className="w-px h-6 bg-white/10" />;
+  return <div className="w-px h-5 bg-white/8" />;
 }
 
 export function Toolbar() {
-  const { fitView } = useReactFlow();
+  const { fitView, screenToFlowPosition } = useReactFlow();
   const addNode = useMindMapStore((s) => s.addNode);
   const save = useMindMapStore((s) => s.save);
   const docName = useMindMapStore((s) => s.docName);
@@ -63,8 +63,12 @@ export function Toolbar() {
   const canRedo = useStore(useMindMapStore.temporal, (s) => s.futureStates.length > 0);
 
   const handleAdd = useCallback(() => {
-    addNode({ x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 });
-  }, [addNode]);
+    const center = screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    });
+    addNode(center);
+  }, [addNode, screenToFlowPosition]);
 
   const handleExport = useCallback(() => {
     exportToJSON(docName, nodes, edges);
@@ -83,67 +87,68 @@ export function Toolbar() {
   }, [importData]);
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-4 py-2 rounded-2xl"
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 px-4 py-1.5 rounded-2xl"
       style={{
-        background: 'rgba(15, 15, 25, 0.7)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+        background: 'rgba(17, 17, 17, 0.85)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(29, 196, 126, 0.05)',
       }}
     >
       {/* Document name */}
       <input
         value={docName}
         onChange={(e) => setDocName(e.target.value)}
-        className="bg-transparent border-none outline-none text-white/80 text-sm font-medium w-40 mr-2 focus:text-white"
+        className="bg-transparent border-none outline-none text-white/70 text-sm font-medium w-40 mr-2 focus:text-[#1DC47E] transition-colors"
+        style={{ letterSpacing: '-0.02em' }}
         placeholder="Untitled"
       />
 
       <Divider />
 
       <ToolbarButton onClick={() => undo()} title="Undo (Ctrl+Z)" disabled={!canUndo}>
-        <Undo2 size={18} />
+        <Undo2 size={16} />
       </ToolbarButton>
 
       <ToolbarButton onClick={() => redo()} title="Redo (Ctrl+Shift+Z)" disabled={!canRedo}>
-        <Redo2 size={18} />
+        <Redo2 size={16} />
       </ToolbarButton>
 
       <Divider />
 
       <ToolbarButton onClick={handleAdd} title="Add Node">
-        <Plus size={18} />
+        <Plus size={16} />
       </ToolbarButton>
 
       <ToolbarButton onClick={() => layout()} title="Auto Layout">
-        <LayoutGrid size={18} />
+        <LayoutGrid size={16} />
       </ToolbarButton>
 
       <ToolbarButton onClick={toggleDirection} title={`Layout: ${layoutDirection === 'TB' ? 'Top-Down' : 'Left-Right'}`}>
-        {layoutDirection === 'TB' ? <ArrowDownUp size={18} /> : <ArrowLeftRight size={18} />}
+        {layoutDirection === 'TB' ? <ArrowDownUp size={16} /> : <ArrowLeftRight size={16} />}
       </ToolbarButton>
 
       <ToolbarButton onClick={() => fitView({ padding: 0.2, duration: 300 })} title="Fit View">
-        <Maximize size={18} />
+        <Maximize size={16} />
       </ToolbarButton>
 
       <Divider />
 
       <ToolbarButton onClick={handleExport} title="Export JSON">
-        <Download size={18} />
+        <Download size={16} />
       </ToolbarButton>
 
       <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Import JSON">
-        <Upload size={18} />
+        <Upload size={16} />
       </ToolbarButton>
 
       <ToolbarButton onClick={() => { save(); }} title="Save (Ctrl+S)">
-        <Save size={18} />
+        <Save size={16} />
       </ToolbarButton>
 
       <ToolbarButton onClick={() => newDoc()} title="New Mind Map">
-        <FileText size={18} />
+        <FileText size={16} />
       </ToolbarButton>
 
       <input

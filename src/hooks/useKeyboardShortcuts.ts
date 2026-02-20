@@ -3,11 +3,11 @@ import { useMindMapStore } from '@/store/mindMapStore';
 import { exportToJSON } from '@/utils/export';
 
 export function useKeyboardShortcuts() {
-  const store = useMindMapStore();
-  const { undo, redo } = useMindMapStore.temporal.getState();
-
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      const store = useMindMapStore.getState();
+      const { undo, redo } = useMindMapStore.temporal.getState();
+
       // Undo/redo should work even from inputs
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
@@ -78,5 +78,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [store]);
+  }, []);
 }

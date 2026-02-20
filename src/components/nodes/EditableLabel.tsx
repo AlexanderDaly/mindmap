@@ -50,7 +50,7 @@ export function EditableLabel({ nodeId, label, className = '' }: EditableLabelPr
           e.stopPropagation();
         }}
         className={`bg-transparent border-none outline-none text-center w-full ${className}`}
-        style={{ caretColor: 'white' }}
+        style={{ caretColor: '#1DC47E' }}
       />
     );
   }

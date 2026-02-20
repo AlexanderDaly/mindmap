@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a14;
+  color: white;
+  font-family: var(--font-sans);
+}
+
+/* React Flow dark overrides */
+.mindmap-flow .react-flow__pane {
+  cursor: grab;
+}
+
+.mindmap-flow .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.mindmap-flow .react-flow__node {
+  animation: nodeAppear 0.25s ease-out;
+}
+
+@keyframes nodeAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mindmap-flow .react-flow__handle {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.mindmap-flow .react-flow__node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+.mindmap-flow .react-flow__edge-path {
+  transition: stroke-width 0.15s;
+}
+
+/* Selection box */
+.mindmap-flow .react-flow__selection {
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+/* Minimap */
+.mindmap-flow .react-flow__minimap {
+  border-radius: 12px;
+}
+
+/* Controls */
+.mindmap-flow .react-flow__controls button svg {
+  fill: rgba(255, 255, 255, 0.6);
+}
+
+.mindmap-flow .react-flow__controls button:hover svg {
+  fill: rgba(255, 255, 255, 0.9);
+}
